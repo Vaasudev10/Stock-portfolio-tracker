@@ -1,0 +1,103 @@
+pip install yfinance
+import yfinance as yf
+import pickle
+import os
+import time
+
+class Stock:
+    def __init__(self, symbol, shares):
+        self.symbol = symbol
+        self.shares = shares
+
+    def get_price(self):
+        data = yf.Ticker(self.symbol)
+        price = data.history(period="1d")['Close'].iloc[-1]
+        return price
+
+    def get_value(self):
+        return self.get_price() * self.shares
+
+class Portfolio:
+    def __init__(self):
+        self.stocks = []
+
+    def add_stock(self, stock):
+        self.stocks.append(stock)
+
+    def remove_stock(self, symbol):
+        for stock in self.stocks:
+            if stock.symbol == symbol:
+                self.stocks.remove(stock)
+                print(f"{symbol} removed from portfolio.")
+                return
+        print(f"{symbol} not found in portfolio.")
+
+    def portfolio_value(self):
+        total_value = 0
+        for stock in self.stocks:
+            total_value += stock.get_value()
+        return total_value
+
+    def update_prices(self):
+        for stock in self.stocks:
+            stock_price = stock.get_price()
+            print(f"Updating price for {stock.symbol}: ${stock_price:.2f}")
+            stock.shares = stock.get_value() / stock_price
+
+    def save_portfolio(self, filename):
+        with open(filename, 'wb') as f:
+            pickle.dump(self.stocks, f)
+        print("Portfolio saved successfully.")
+
+    def load_portfolio(self, filename):
+        if os.path.exists(filename):
+            with open(filename, 'rb') as f:
+                self.stocks = pickle.load(f)
+            print("Portfolio loaded successfully.")
+        else:
+            print("Portfolio file not found.")
+
+if __name__ == "__main__":
+    portfolio = Portfolio()
+
+    # Load portfolio from file if it exists
+    portfolio_file = "portfolio.pkl"
+    portfolio.load_portfolio(portfolio_file)
+
+    while True:
+        print("\n1. Add stock to portfolio")
+        print("2. Remove stock from portfolio")
+        print("3. Calculate portfolio value")
+        print("4. Update stock prices")
+        print("5. Save portfolio to file")
+        print("6. Exit")
+
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            symbol = input("Enter stock symbol: ").upper()
+            shares = int(input("Enter number of shares: "))
+            stock = Stock(symbol, shares)
+            portfolio.add_stock(stock)
+            print(f"{symbol} added to portfolio.")
+
+        elif choice == '2':
+            symbol = input("Enter stock symbol to remove: ").upper()
+            portfolio.remove_stock(symbol)
+
+        elif choice == '3':
+            print(f"\nTotal Portfolio Value: ${portfolio.portfolio_value():.2f}")
+
+        elif choice == '4':
+            portfolio.update_prices()
+
+        elif choice == '5':
+            portfolio.save_portfolio(portfolio_file)
+
+        elif choice == '6':
+            print("Exiting...")
+            portfolio.save_portfolio(portfolio_file)
+            break
+
+        else:
+            print("Invalid choice. Please enter a valid option.")
